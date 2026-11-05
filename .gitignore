@@ -8,7 +8,7 @@ __pycache__/
 *.pyo
 .venv/
 venv/
-.env
+# .env
 postgresql-volume/*
 mongodb-volume/*
 minio.license
