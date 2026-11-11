@@ -16,12 +16,14 @@ First, let's create an isolated Python environment and install dbt along with th
 1. Create and activate a virtual environment:
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+   ```
+   ```bash
+   source venv/bin/activate
    ```
 
-3. Install `dbt-duckdb`:
+3. Install `dbt` utilities (`dbt-core`) and the DuckDB adapter (`dbt-duckdb`):
    ```bash
-   pip install -r requirements.txt dbt-duckdb
+   pip install -r requirements.txt
    ```
 
 ---
@@ -44,9 +46,9 @@ Now we will create the scaffolding for our dbt project.
 
 ## Step 3: Configure Your Profile
 
-dbt uses a `profiles.yml` file to know how to connect to your database. By default, dbt looks in `~/.dbt/profiles.yml`. However, for this lab, we'll keep it local.
+dbt uses a `profiles.yml` file to know how to connect to your database. By default, dbt looks in the dbt project directory. If not found there, it looks in `~/.dbt/profiles.yml` file. For this lab, we'll keep it local (in the dbt project directory).
 
-1. Create a file named `profiles.yml` **inside** your `my_first_project` directory with the following content:
+1. Create a file named `profiles.yml` **inside** your `dbt_lab/` directory with the following content:
 
    ```yaml
    dbt_lab:
@@ -54,23 +56,34 @@ dbt uses a `profiles.yml` file to know how to connect to your database. By defau
        dev:
          type: duckdb
          path: local_database.duckdb
+         schema: orders
      target: dev
    ```
 
-2. Open the existing `dbt_project.yml` file in the root of your project and tell dbt to look for the profile in the current directory. Add/modify these lines at the top:
+2. Open the existing `dbt_project.yml` file in the root of your project and modify the models configuration:
 
-   ```yaml
-   name: 'dbt_lab'
-   version: '1.0.0'
-   config-version: 2
-   profile: 'dbt_lab'
-   ```
+    Current configuration:
+    ```yaml
+    models:
+        dbt_lab:
+            # Config indicated by + and applies to all files under models/example/
+            example:
+            +materialized: view
+    ```
+
+    New configuration:
+    ```yaml
+    models:
+        dbt_lab:
+            +materialized: table
+            mart_monthly_revenue:
+                +materialized: view
+    ```
 
 3. Test your connection:
    ```bash
-   DBT_PROFILES_DIR=. dbt debug
+   dbt debug
    ```
-   *Note: Prepending `DBT_PROFILES_DIR=.` tells dbt to use the local profile we just made. All tests should pass!*
 
 ---
 
@@ -78,21 +91,11 @@ dbt uses a `profiles.yml` file to know how to connect to your database. By defau
 
 dbt can load CSV files into your database using a feature called "seeds".
 
-1. Inside the `seeds` folder, create a file named `raw_orders.csv`.
-2. Add the following sample data:
+1. Copy the file `raw_orders.csv` from the `data/` directory into your `dbt_lab/seeds/` directory.
 
-   ```csv
-   order_id,customer_id,order_date,status,amount
-   1,101,2023-01-15,completed,50.00
-   2,102,2023-01-16,completed,125.50
-   3,101,2023-01-18,returned,50.00
-   4,103,2023-02-02,completed,200.00
-   5,102,2023-02-10,completed,75.25
-   ```
-
-3. Load this data into your DuckDB database:
+2. Load this data into your DuckDB database:
    ```bash
-   DBT_PROFILES_DIR=. dbt seed
+   dbt seed
    ```
 
 ---
@@ -101,7 +104,7 @@ dbt can load CSV files into your database using a feature called "seeds".
 
 In dbt, models are simply SQL `SELECT` statements. We will create two models: a staging model to clean up the raw data, and a mart model to aggregate it.
 
-1. Inside the `models` directory, delete the `example` folder to keep things clean.
+1. Inside the `models` directory, delete the `example/` directory to keep things clean.
 2. Create a new file: `models/stg_orders.sql`. Add this code:
 
    ```sql
@@ -142,11 +145,11 @@ In dbt, models are simply SQL `SELECT` statements. We will create two models: a 
 
 Now we will tell dbt to execute the SQL and build the tables/views in the database.
 
-1. Run the models:
+Run the models:
    ```bash
-   DBT_PROFILES_DIR=. dbt run
+   dbt run
    ```
-   *You should see green text indicating that `stg_orders` and `mart_monthly_revenue` were created successfully.*
+   >*You should see green text indicating that `stg_orders` and `mart_monthly_revenue` were created successfully.*
 
 ---
 
@@ -170,8 +173,24 @@ Let's add a quick test to ensure our `order_id` is unique and never null.
 
 2. Run the tests:
    ```bash
-   DBT_PROFILES_DIR=. dbt test
+   dbt test
    ```
+
+## Step 8: Documentation (Optional but Recommended)
+
+In this section, we will generate a documentation which will describe our data and data pipeline.
+
+1. Generate the documentation:
+   ```bash
+   dbt docs generate
+   ```
+   >*You should see green text indicating that `docs` were created successfully.*
+
+2. Open the generated documentation in the browser:
+   ```bash
+   dbt docs serve
+   ```
+
 
 ## Conclusion
 
@@ -181,3 +200,4 @@ Congratulations! You have successfully:
 3. Built a staging model (cleaning data).
 4. Built a mart model (aggregating data).
 5. Tested your data quality.
+6. Generated documentation and observed the data lineage.
